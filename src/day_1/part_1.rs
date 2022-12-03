@@ -1,12 +1,13 @@
 
 use std::fs::File;
-use std::io::{self, prelude::*, BufReader};
+use std::io::{prelude::*, BufReader};
 
+#[allow(dead_code)]
 pub fn partone() {
   let file_result = File::open("./data/day_1.txt");
   let file = match file_result {
       Ok(file) => file,
-      Err(error) => panic!("should not error")
+      Err(_error) => panic!("should not error")
   };
 
   let reader = BufReader::new(file);
