@@ -2,7 +2,7 @@ use std::fs::File;
 use std::io::{prelude::*, BufReader};
 
 #[allow(dead_code)]
-pub fn part_1() {
+pub fn part_2() {
     let file_result = File::open("./data/day_5.txt");
     let start_line: usize = 10;
     let file = file_result.unwrap();
@@ -28,17 +28,16 @@ pub fn part_1() {
 
         let line: String = linebuf.unwrap();
         let split_line: Vec<&str> = line.split(' ').collect::<Vec<&str>>();
-        let amount: u32 = split_line[1].parse::<u32>().unwrap();
+        let amount: usize = split_line[1].parse::<usize>().unwrap();
         let from: usize = split_line[3].parse::<usize>().unwrap();
         let to: usize = split_line[5].parse::<usize>().unwrap();
-
-        // println!("Amount: {}, from: {}, dest: {}", amount, from, to);
         
         // move from crates[from] to crates[to] the amount
+        let mut temp: Vec<char> = crates[from][crates[from].len()-amount..].to_vec();  
         for _ in 0..amount {
-            let temp: char = crates[from].pop().unwrap();
-            crates[to].push(temp);
+            crates[from].pop();
         }
+        crates[to].append(&mut temp);
     }
     
     // print top of each crate
@@ -46,16 +45,4 @@ pub fn part_1() {
         print!("{}", crates[i].pop().unwrap());
     }
     println!("");
-}
-
-pub fn parse_crates() {
-    let file_result = File::open("./data/day_5.txt");
-    let file = file_result.unwrap();
-    let reader = BufReader::new(file);
-
-    let num_crates: usize;
-    for (index, linebuf) in reader.lines().enumerate() {
-        let line: String = linebuf.unwrap();
-        println!("{}", line.len());
-    }
 }
