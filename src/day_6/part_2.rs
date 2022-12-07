@@ -16,7 +16,7 @@ pub fn day_2() {
     let mut map: HashMap<char, u32> = HashMap::new();
     let mut last_letter: char;
     let mut num_inside = 0;
-    let mut matching: usize = 14;
+    let matching: usize = 14;
     for (index, c) in line.chars().enumerate() {
         if num_inside < matching {
             if map.contains_key(&c) {
