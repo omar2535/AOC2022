@@ -48,13 +48,14 @@ pub fn part_1() {
     println!("");
 }
 
+#[allow(dead_code)]
 pub fn parse_crates() {
     let file_result = File::open("./data/day_5.txt");
     let file = file_result.unwrap();
     let reader = BufReader::new(file);
 
-    let num_crates: usize;
-    for (index, linebuf) in reader.lines().enumerate() {
+    let _num_crates: usize;
+    for (_index, linebuf) in reader.lines().enumerate() {
         let line: String = linebuf.unwrap();
         println!("{}", line.len());
     }
