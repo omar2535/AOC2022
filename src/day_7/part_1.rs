@@ -1,26 +1,30 @@
-use std::{fs::File, io::{BufReader, BufRead}};
+use std::{fs::File, io::{BufReader, BufRead}, rc::Rc, borrow::BorrowMut, cell::RefCell};
 
 pub enum FileType {
     FILE,
     DIR,
 }
 
-pub struct Node {
+pub struct Node<'a> {
     name: String,
     node_type: FileType,
     size: u64,
-    parent: Option<Box<Node>>,
-    children: Vec<Node>
+    parent: Option<Rc<&'a Node<'a>>>,
+    children: RefCell<Vec<&'a Node<'a>>>
 }
 
-impl Node {
+impl Node<'_> {
     fn get_child(self: &Self, node_name: &str) -> &Node {
-        for child in self.children.iter() {
+        for child in self.children.borrow().iter() {
             if child.name == node_name {
                 return child;
             }
         }
         panic!("NO");
+    }
+
+    fn add_child(self: &Self, new_node: &Node) {
+        self.children.borrow_mut().push(new_node);
     }
 
     fn get_parent(self: &Self) -> &Node {
@@ -42,7 +46,7 @@ pub fn part_1() {
         node_type: FileType::DIR,
         size: 0,
         parent: None,
-        children: vec![]
+        children: RefCell::new(vec![])
     };
 
     let mut cur_node: &Node = root_node;
@@ -66,8 +70,42 @@ pub fn part_1() {
                     cur_node = cur_node.get_child(cd_dir);
                 }
             } else if line.contains(&LS_STRING) {
+                // skip a line
                 
-                
+                // get the line range with ls output
+                let mut range: usize = 0;
+                i += 1;
+                while i+range < lines.len() && !lines[i+range].contains(&CMD_STRING) {
+                    range += 1;
+                }
+
+                for j in 0..range {
+                    let ls_info: Vec<&str> = line.split(' ').collect::<Vec<&str>>();
+                    let type_or_size: &str = ls_info[0];
+                    let name: &str = ls_info[1];
+                    let filetype: FileType;
+                    let mut size: u64 = 0;
+
+                    if type_or_size == "dir" {
+                        filetype = FileType::DIR;
+                    } else {
+                        filetype = FileType::FILE;
+                        size = type_or_size.parse().unwrap();
+                    }
+
+                    // create the new node
+                    let newnode: Node = Node {
+                        name: name.to_string(),
+                        node_type: filetype,
+                        size: size,
+                        parent: Some(Rc::new(cur_node)),
+                        children: RefCell::new(vec![])
+                    };
+
+                    // add this node to the current node's children
+                    cur_node.add_child(&newnode);
+                    
+                }
             }            
         }
 
