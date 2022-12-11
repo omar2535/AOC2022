@@ -100,7 +100,7 @@ pub fn get_nodelist() -> Vec<Node> {
 }
 
 pub fn get_node_index(nodelist: &Vec<Node>, name: String) -> usize {
-    println!("Get node index for: {}", name);
+    // println!("Get node index for: {}", name);
     for (index, node) in nodelist.iter().enumerate() {
         if node.name == name {
             return index;
@@ -130,7 +130,36 @@ fn update_sums(node: &Node, node_list: &Vec<Node>, total: &mut u64) -> u64{
     }
 }
 
-pub fn part_1() {
+fn get_smallest_dir_space(node: &Node, node_list: &Vec<Node>, required_size: u64, smallest: &mut u64) -> (u64, u64){
+    if node.size != 0 {
+        return (node.size, *smallest);
+    } else {
+        let mut sum: u64 = 0;
+        let mut smallests: Vec<u64> = vec![];
+        for child_node_idx in node.children.borrow().iter() {
+            let node: &Node = &node_list[*child_node_idx];
+            let res = get_smallest_dir_space(&node, node_list, required_size, smallest);
+            sum += res.0;
+            smallests.push(res.1);
+        }
+        match node.node_type {
+            FileType::DIR => {
+                // first, go through all to get the smallest in the smallests list matching our criteria
+                // then check ou sum
+                let min: u64 = *smallests.iter().min().unwrap();
+                if sum >= required_size && sum <= *smallest && sum <= min {
+                    *smallest = sum;
+                } else if min >= required_size && min <= sum && min <= *smallest {
+                    *smallest = min;
+                }
+            }
+            FileType::FILE => {}
+        }
+        return (sum, *smallest);
+    }
+}
+
+pub fn part_2() {
     let CD_STRING = String::from("cd");
     let LS_STRING = String::from("ls");
     let CMD_STRING = String::from("$");
@@ -151,7 +180,7 @@ pub fn part_1() {
     let mut i: usize = 0;
     while i < lines.len() {
         let line: &String = &lines[i];
-        println!("{}", line);
+        // println!("{}", line);
 
         if line.contains(&CMD_STRING) {
             if line.contains(&CD_STRING) {
@@ -198,8 +227,21 @@ pub fn part_1() {
 
     //Main problem solver
     let mut total = 0;
-    let res = update_sums(root_node, &node_list, &mut total);
+    let current_space = update_sums(root_node, &node_list, &mut total);
+    let free_space = 70000000 - current_space;
 
-    println!("Total: {}", total);
+    if free_space >= 30000000 {
+        println!("Already have enough!");
+        return;
+    }
+
+    let required_space = 30000000 - free_space;
+    println!("We require: {} amount of space still!", required_space);
+
+    let mut smallest = current_space.clone();
+    let (sum, answer) = get_smallest_dir_space(root_node, &node_list, required_space, &mut smallest);
+    
+
+    println!("Answer part 2: {}", answer);
     // Here, we have a good grpah now (hopefully)
 }
