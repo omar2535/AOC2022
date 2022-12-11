@@ -1,37 +1,123 @@
-use std::{fs::File, io::{BufReader, BufRead}, rc::Rc, borrow::BorrowMut, cell::RefCell};
+use std::{fs::File, io::{BufReader, BufRead}, rc::Rc, borrow::{BorrowMut, Borrow}, cell::{RefCell, Ref}, collections::HashMap, hash::Hash};
 
 pub enum FileType {
     FILE,
     DIR,
 }
 
-pub struct Node<'a> {
+pub struct Node {
     name: String,
     node_type: FileType,
     size: u64,
-    parent: Option<Rc<&'a Node<'a>>>,
-    children: RefCell<Vec<&'a Node<'a>>>
+    self_idx: usize,
+    parent: usize,
+    children: RefCell<Vec<usize>>
 }
 
-impl Node<'_> {
-    fn get_child(self: &Self, node_name: &str) -> &Node {
-        for child in self.children.borrow().iter() {
-            if child.name == node_name {
-                return child;
+impl Node {
+    fn get_child(self: &Self, node_name: String, node_list: &Vec<Node>) -> Option<usize> {
+        for index in self.children.borrow().iter() {
+            if node_list[*index].name == node_name {
+                return Some(*index);
             }
         }
-        panic!("NO");
+        None
     }
+}
 
-    fn add_child(self: &Self, new_node: &Node) {
-        self.children.borrow_mut().push(new_node);
-    }
+pub fn get_nodelist() -> Vec<Node> {
+    let file_result = File::open("./data/day_7.txt");
+    let file = file_result.unwrap();
+    let reader = BufReader::new(file);
+    let lines: Vec<String> = reader.lines().collect::<Result<_, _>>().unwrap();   
+    
+    let CMD_STRING = String::from("$");
+    let CD_STRING = String::from("cd");
 
-    fn get_parent(self: &Self) -> &Node {
-        return match &self.parent {
-            Some(parent) => &parent,
-            None => self
+    let mut node_list: Vec<Node> = Vec::new();
+    let mut cur_path: Vec<String> = vec![String::from("/")];
+
+    let root_node = Node {
+        name: cur_path[0].clone(),
+        node_type: FileType::DIR,
+        self_idx: 0,
+        size: 0,
+        parent: 0,
+        children: RefCell::new(vec![])
+    };
+    node_list.push(root_node);
+
+    let mut i: usize = 0;
+    while i < lines.len() {
+        let line: &String = &lines[i];
+        if line.contains(&CMD_STRING) {
+            if line.contains(&CD_STRING) {
+                let cd_dir: &str = line.split(' ').collect::<Vec<&str>>()[2];
+                if cd_dir == ".." {
+                    if cur_path.len() == 1 {
+                        // nothing
+                    } else {
+                        cur_path.pop();
+                    }
+                } else {
+                    cur_path.push(cd_dir.to_string());
+                }
+            }
         }
+
+        if !line.contains(&CMD_STRING) {
+            let ls_info: Vec<&str> = line.split(' ').collect::<Vec<&str>>();
+            let type_or_size: &str = ls_info[0];
+            let name: String = cur_path.join("/") + ls_info[1];
+            let filetype: FileType;
+            let mut size: u64 = 0;
+
+            if type_or_size == "dir" {
+                filetype = FileType::DIR;
+            } else {
+                filetype = FileType::FILE;
+                size = type_or_size.parse().unwrap();
+            }
+
+            // create the new node
+            let new_node: Node = Node {
+                name: name,
+                node_type: filetype,
+                self_idx: node_list.len(),
+                size: size,
+                parent: 0,
+                children: RefCell::new(vec![])
+            };
+
+            // add this node to children
+            // can't do this since references to the current node list will be invalidated
+            node_list.push(new_node);
+        }
+        i += 1;
+    }
+
+    return node_list;
+}
+
+pub fn get_node_index(nodelist: &Vec<Node>, name: String) -> usize {
+    println!("Get node index for: {}", name);
+    for (index, node) in nodelist.iter().enumerate() {
+        if node.name == name {
+            return index;
+        }
+    }
+    panic!("Can't find node");
+}
+
+fn update_sums(node: Node, ) -> u64{
+    if node.size != 0 {
+        return node.size;
+    } else {
+        let mut sum: u64 = 0;
+        for child_node in node.children.borrow().iter() {
+            sum += update_sums(child_node);
+        }
+        return sum;
     }
 }
 
@@ -39,17 +125,13 @@ pub fn part_1() {
     let CD_STRING = String::from("cd");
     let LS_STRING = String::from("ls");
     let CMD_STRING = String::from("$");
+    let node_list: Vec<Node> = get_nodelist();
+    let mut parent_mappings: HashMap<usize, usize> = HashMap::new();
+    let mut cur_path: Vec<String> = vec![String::from("/")];
 
 
-    let root_node = &Node {
-        name: String::from("/"),
-        node_type: FileType::DIR,
-        size: 0,
-        parent: None,
-        children: RefCell::new(vec![])
-    };
-
-    let mut cur_node: &Node = root_node;
+    let root_node: &Node = &node_list[0];
+    let mut cur_node = root_node;
 
     // start parsing lines
     let file_result = File::open("./data/day_7.txt");
@@ -60,18 +142,26 @@ pub fn part_1() {
     let mut i: usize = 0;
     while i < lines.len() {
         let line: &String = &lines[i];
+        println!("{}", line);
 
         if line.contains(&CMD_STRING) {
             if line.contains(&CD_STRING) {
                 let cd_dir: &str = line.split(' ').collect::<Vec<&str>>()[2];
                 if cd_dir == ".." {
-                    cur_node = cur_node.get_parent();
+                    let parent_idx = parent_mappings.get(&cur_node.self_idx).unwrap();
+                    cur_node = &node_list[*parent_idx];
+                    // update path
+                    if cur_path.len() == 1 {
+                        // nothing
+                    } else {
+                        cur_path.pop();
+                    }
                 } else {
-                    cur_node = cur_node.get_child(cd_dir);
+                    let child_name: String = cur_path.join("/") + cd_dir;
+                    cur_node = &node_list[cur_node.get_child(child_name, &node_list).unwrap()];
+                    cur_path.push(cd_dir.to_string());
                 }
-            } else if line.contains(&LS_STRING) {
-                // skip a line
-                
+            } else if line.contains(&LS_STRING) {                
                 // get the line range with ls output
                 let mut range: usize = 0;
                 i += 1;
@@ -80,38 +170,21 @@ pub fn part_1() {
                 }
 
                 for j in 0..range {
-                    let ls_info: Vec<&str> = line.split(' ').collect::<Vec<&str>>();
-                    let type_or_size: &str = ls_info[0];
-                    let name: &str = ls_info[1];
-                    let filetype: FileType;
-                    let mut size: u64 = 0;
+                    // find in node list
+                    // add the node index to the children of the current node
+                    let listing_line = &lines[i+j];
+                    let ls_info: Vec<&str> = listing_line.split(' ').collect::<Vec<&str>>();
+                    let name: String = cur_path.join("/") + ls_info[1];
 
-                    if type_or_size == "dir" {
-                        filetype = FileType::DIR;
-                    } else {
-                        filetype = FileType::FILE;
-                        size = type_or_size.parse().unwrap();
-                    }
-
-                    // create the new node
-                    let newnode: Node = Node {
-                        name: name.to_string(),
-                        node_type: filetype,
-                        size: size,
-                        parent: Some(Rc::new(cur_node)),
-                        children: RefCell::new(vec![])
-                    };
-
-                    // add this node to the current node's children
-                    cur_node.add_child(&newnode);
-                    
+                    let idx: usize = get_node_index(&node_list, name);
+                    parent_mappings.insert(idx, cur_node.self_idx);
+                    cur_node.children.borrow_mut().push(idx);
                 }
-            }            
+                i += range-1;
+            }
         }
-
-
-        
         i += 1;
-        //if it's a cd, change current node depending on .. or <dir>
     }
+
+    // Here, we have a good grpah now (hopefully)
 }
