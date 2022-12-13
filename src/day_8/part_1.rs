@@ -23,4 +23,45 @@ pub fn part_1() {
         }
         original.push(row);
     }
+
+    let len = original.len();
+
+    // generate list for up matrix
+    for i in 0..len {
+        let mut row: Vec<u32> = vec![original[0][i]];
+        let mut max: u32 = row[0];
+        for j in 1..len {
+            max = std::cmp::max(max, original[j][i]);
+            row.push(max.clone());
+        }
+        up.push(row);
+    }
+
+    // generate list for down matrix
+    for i in 0..len {
+        let mut row: Vec<u32> = vec![original[len-1][i]];
+        let mut max: u32 = row[0];
+        for j in 2..len {
+            max = std::cmp::max(max, original[len-j][i]);
+            row.push(max.clone());
+        }
+    }
+}
+
+// 1 2 3 4 5   1 1 1 1 1
+// 1 2 3 4 5   2 2 2 2 2
+// 1 2 3 4 5 > 3 3 3 3 3
+// 1 2 3 4 5   4 4 4 4 4
+// 1 2 3 4 5   5 5 5 5 5
+// must be a square matrix
+pub fn transpose_matrix(input_vec: &mut Vec<Vec<u32>>) {
+    let len: usize = input_vec.len();
+
+    for i in 0..len {
+        for j in 0..len {
+            let temp = input_vec[i][j];
+            input_vec[i][j] = input_vec[j][i];
+            input_vec[j][i] = temp;
+        }
+    }
 }
