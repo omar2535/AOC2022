@@ -2,6 +2,10 @@
 use std::fs::File;
 use std::io::{prelude::*, BufReader};
 
+// Ideal solution:
+// create a 4 differnet max mtrixes for each direction.
+// This uses O(n) space and O(n) lookup
+// but I'll jus code the simple solution since we have a static file
 
 pub fn part_1() {
     let file_result = File::open("./data/day_8.txt");
@@ -10,10 +14,6 @@ pub fn part_1() {
 
     // our matrices
     let mut original: Vec<Vec<u32>> = Vec::new();
-    let mut up: Vec<Vec<u32>> = Vec::new();
-    let mut down: Vec<Vec<u32>> = Vec::new();
-    let mut left: Vec<Vec<u32>> = Vec::new();
-    let mut right: Vec<Vec<u32>> = Vec::new();
     
     // create the original matrix
     for (index, linebuf) in reader.lines().enumerate() {
@@ -24,28 +24,26 @@ pub fn part_1() {
         original.push(row);
     }
 
+    // square matrix, so we just use len for both
     let len = original.len();
+    let mut total = 0;
 
-    // generate list for up matrix
-    for i in 0..len {
-        let mut row: Vec<u32> = vec![original[0][i]];
-        let mut max: u32 = row[0];
-        for j in 1..len {
-            max = std::cmp::max(max, original[j][i]);
-            row.push(max.clone());
-        }
-        up.push(row);
-    }
-
-    // generate list for down matrix
-    for i in 0..len {
-        let mut row: Vec<u32> = vec![original[len-1][i]];
-        let mut max: u32 = row[0];
-        for j in 2..len {
-            max = std::cmp::max(max, original[len-j][i]);
-            row.push(max.clone());
+    for y in 0..len {
+        for x in 0..len {
+            if y == 0 || x == 0 || y == len-1 || x == len-1 {
+                // at the border
+                total += 1;
+            } else {
+                // check each direction max
+                let up: Vec<u32> = get_vertical_vector_at_x(&original, x);
+                let down: Vec<u32> = get_vertical_vector_at_x(&original, x);
+                let left: Vec<u32> = get_horizontal_vector_at_y(&original, y);
+                let right: Vec<u32> = get_horizontal_vector_at_y(&original, y);
+            }
         }
     }
+
+    // doing it the e
 }
 
 // 1 2 3 4 5   1 1 1 1 1
@@ -64,4 +62,21 @@ pub fn transpose_matrix(input_vec: &mut Vec<Vec<u32>>) {
             input_vec[j][i] = temp;
         }
     }
+}
+
+// Gets the entire horizontal row as a vector
+pub fn get_horizontal_vector_at_y(input_vec: &Vec<Vec<u32>>, y: usize) -> Vec<u32> {
+    return input_vec[y];
+}
+
+// gets the entire vertical row as a vector
+pub fn get_vertical_vector_at_x(input_vec: &Vec<Vec<u32>>, x: usize) -> Vec<u32> {
+    let len: usize = input_vec.len();
+    let mut y_vec: Vec<u32> = vec![];
+
+    for y in 0..len {
+        y_vec.push(input_vec[y][x]);
+    }
+
+    return y_vec;
 }
