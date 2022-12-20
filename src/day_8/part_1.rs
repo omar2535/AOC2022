@@ -34,16 +34,31 @@ pub fn part_1() {
                 // at the border
                 total += 1;
             } else {
+                // current tree height
+                let cur_tree: u32 = original[y][x];
+
                 // check each direction max
-                let up: Vec<u32> = get_vertical_vector_at_x(&original, x);
-                let down: Vec<u32> = get_vertical_vector_at_x(&original, x);
-                let left: Vec<u32> = get_horizontal_vector_at_y(&original, y);
-                let right: Vec<u32> = get_horizontal_vector_at_y(&original, y);
+                let vertical: Vec<u32> = get_vertical_vector_at_x(&original, x);
+                let horizontal: &Vec<u32> = get_horizontal_vector_at_y(&original, y);
+                
+                let up: &Vec<u32> = &vertical[0..y].to_vec();
+                let down: &Vec<u32> = &vertical[y+1..vertical.len()].to_vec();
+                let left: &Vec<u32> = &horizontal[0..x].to_vec();
+                let right: &Vec<u32> = &horizontal[x+1..horizontal.len()].to_vec();
+
+                let up_max = up.iter().max().unwrap();
+                let down_max = down.iter().max().unwrap();
+                let left_max = left.iter().max().unwrap();
+                let right_max = right.iter().max().unwrap();
+
+                if cur_tree > *up_max || cur_tree > *down_max || 
+                   cur_tree > *left_max || cur_tree > *right_max {
+                    total += 1;
+                }                
             }
         }
     }
-
-    // doing it the e
+    println!("Num trees: {}", total);
 }
 
 // 1 2 3 4 5   1 1 1 1 1
@@ -65,8 +80,8 @@ pub fn transpose_matrix(input_vec: &mut Vec<Vec<u32>>) {
 }
 
 // Gets the entire horizontal row as a vector
-pub fn get_horizontal_vector_at_y(input_vec: &Vec<Vec<u32>>, y: usize) -> Vec<u32> {
-    return input_vec[y];
+pub fn get_horizontal_vector_at_y(input_vec: &Vec<Vec<u32>>, y: usize) -> &Vec<u32> {
+    return &input_vec[y];
 }
 
 // gets the entire vertical row as a vector
